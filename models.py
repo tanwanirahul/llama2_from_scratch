@@ -130,3 +130,27 @@ class LlamaWithLMHead(nn.Module):
     
     def forward(self, input_ids, attention_mask, kv_cache=None, device="cpu"):
         pass
+
+    @classmethod
+    def from_pretrained(cls, hf_model):
+        '''
+            Load the parameters for LlamaWithLMHead from the given 
+            HF model.
+        '''
+        # create an instance of our Llama model.
+        model = LlamaWithLMHead(LlamaConfig()).to(hf_model.dtype)
+
+        # get the model's state / parameters.
+        sd = model.state_dict()
+        hf_sd = hf_model.state_dict()
+        
+        assert len(sd.keys()) == len(hf_sd.keys()), f"mismatch in model keys! expected: {len(sd.keys())}; found: {len(hf_sd.keys())}"
+
+        # Copy the state from hf model to our model.
+        for k in sd.keys():
+            assert sd[k].shape == hf_sd[k].shape, f"Shape of the key: {k} didn't match!"
+            assert sd[k].dtype == hf_sd[k].dtype, f"Type for the key: {k} didn't match!"
+
+            with torch.no_grad():
+                sd[k].copy_(hf_sd[k])
+        return model

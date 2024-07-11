@@ -2,6 +2,7 @@
     Configuration parameters for Llama2-7B model.
 '''
 from dataclasses import dataclass
+import torch
 
 class LlamaConfig:
     '''
@@ -16,3 +17,4 @@ class LlamaConfig:
     max_position_embeddings: int = 2048
     rms_norm_eps: float = 1e-6
     rope_theta_base: int = 10000
+    default_dtype: torch.dtype = torch.float16

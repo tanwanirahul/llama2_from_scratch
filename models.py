@@ -6,7 +6,6 @@ from torch import nn as nn
 from config import LlamaConfig
 from cache import KVCache
 
-
 class LlamaSelfAttention(nn.Module):
     '''
         Implements Llama SelfAttention mechanism.
@@ -19,12 +18,12 @@ class LlamaSelfAttention(nn.Module):
         assert config.n_embed % config.n_q_heads == 0 , f"cannot divide the totoal dimensions {config.n_embed} among {config.n_q_heads}."
         self.head_dims = config.n_embed // config.n_q_heads
 
-        self.q_proj = nn.Linear(config.n_embed, config.n_q_heads * self.head_dims, bias=False)
-        self.k_proj = nn.Linear(config.n_embed, config.n_kv_heads * self.head_dims, bias=False)
-        self.v_proj = nn.Linear(config.n_embed, config.n_kv_heads * self.head_dims, bias=False)
-        self.o_proj = nn.Linear(config.n_embed, config.n_embed, bias=False)
-        
-        self._rotary_emb = LlamaRotaryEmbeddings(config)
+        self.q_proj = nn.Linear(config.n_embed, config.n_q_heads * self.head_dims, bias=False, dtype=config.default_dtype)
+        self.k_proj = nn.Linear(config.n_embed, config.n_kv_heads * self.head_dims, bias=False, dtype=config.default_dtype)
+        self.v_proj = nn.Linear(config.n_embed, config.n_kv_heads * self.head_dims, bias=False, dtype=config.default_dtype)
+        self.o_proj = nn.Linear(config.n_embed, config.n_embed, bias=False, dtype=config.default_dtype)
+
+        self.rotary_emb = LlamaRotaryEmbeddings(config, head_dims=self.head_dims)
     
     def forward(self, input_ids, attention_mask, kv_cache=None, device="cpu"):
         pass
@@ -37,9 +36,9 @@ class LlamaMLP(nn.Module):
         super().__init__()
         self.config = config
 
-        self.gate_proj = nn.Linear(config.n_embed, config.interm_dims, bias=False)
-        self.up_proj = nn.Linear(config.n_embed, config.interm_dims, bias=False)
-        self.down_proj = nn.Linear(config.interm_dims, config.n_embed, bias=False)
+        self.gate_proj = nn.Linear(config.n_embed, config.interm_dims, bias=False, dtype=config.default_dtype)
+        self.up_proj = nn.Linear(config.n_embed, config.interm_dims, bias=False, dtype=config.default_dtype)
+        self.down_proj = nn.Linear(config.interm_dims, config.n_embed, bias=False, dtype=config.default_dtype)
         self.activation = nn.SiLU
 
     def forward(self, input_ids, attention_mask, kv_cache=None, device="cpu"):
@@ -66,10 +65,10 @@ class LlamaRotaryEmbeddings(nn.Module):
     '''
         Rotary embedding model layer for the Llama model.
     '''
-    def __init__(self, config:LlamaConfig):
+    def __init__(self, config:LlamaConfig, head_dims:float):
         super().__init__()
         self.config = config
-    
+
     def forward(self, input_ids, attention_mask, device="cpu"):
         pass
 
@@ -92,7 +91,7 @@ class LlamaRMSNorm(nn.Module):
         super().__init__()
         self.config = config
 
-        self.weight = nn.Parameter(torch.ones(config.n_embed))
+        self.weight = nn.Parameter(torch.ones(config.n_embed, dtype=config.default_dtype))
         self.variance_epsilon = config.rms_norm_eps
 
     def forward(self, input_ids, attention_mask, device="cpu"):
@@ -106,7 +105,7 @@ class Llama(nn.Module):
         super().__init__()
         self.config = config
 
-        self.embed_tokens = nn.Embedding(config.vocab_size, config.n_embed)
+        self.embed_tokens = nn.Embedding(config.vocab_size, config.n_embed, dtype=config.default_dtype)
         self.layers = nn.ModuleList([
             LlamaDecoderLayer(config, lay_idx) for lay_idx in range(config.n_layers)
         ])
@@ -124,7 +123,7 @@ class LlamaWithLMHead(nn.Module):
 
         self.config = config
         self.model = Llama(config)
-        self.lm_head = nn.Linear(config.n_embed, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.n_embed, config.vocab_size, bias=False, dtype=config.default_dtype)
     
     def forward(self, input_ids, attention_mask, kv_cache=None, device="cpu"):
         pass

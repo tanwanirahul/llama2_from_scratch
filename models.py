@@ -5,6 +5,8 @@ import torch
 from torch import nn as nn
 from config import LlamaConfig
 from cache import KVCache
+from transformers.utils.hub import cached_file
+from safetensors import torch as safetorch
 
 class LlamaSelfAttention(nn.Module):
     '''
@@ -153,4 +155,29 @@ class LlamaWithLMHead(nn.Module):
 
             with torch.no_grad():
                 sd[k].copy_(hf_sd[k])
+        return model
+    
+    @classmethod
+    def from_checkpoint(cls, model_name, checkpoints):
+        '''
+            Loads the model weights from the safetensor checkpoints. 
+        '''
+        print(f"Instantiating Llama2 model.")
+        model = LlamaWithLMHead(LlamaConfig())
+        model = model.to(torch.float16)   
+        sd = model.state_dict()
+        sd_keys = sd.keys()
+
+        safe_tensor_checkpoints = checkpoints
+        for checkpoint in safe_tensor_checkpoints:
+            print(f'loading checkpoint -> {checkpoint}')
+            safe_tensors_file = cached_file(model_name, checkpoint)
+            loaded_tensors = safetorch.load_file(safe_tensors_file)
+            for key in loaded_tensors.keys():
+                if "rotary_emb" in key:
+                    print(f"skipping {key}")
+                else:
+                    print(f"loading {key} with the shape {loaded_tensors[key].shape}")
+                    with torch.no_grad():
+                        sd[key].copy_(loaded_tensors[key])    
         return model

@@ -68,6 +68,9 @@ class LlamaRotaryEmbeddings(nn.Module):
     def __init__(self, config:LlamaConfig, head_dims:float):
         super().__init__()
         self.config = config
+        base = config.rope_theta_base
+        inv_freq = 1.0 / (base ** (torch.arange(0, head_dims, 2, dtype=torch.float16) / head_dims))
+        self.register_buffer("inv_freq", inv_freq)
 
     def forward(self, input_ids, attention_mask, device="cpu"):
         pass

@@ -9,7 +9,6 @@ from cache import KVCache
 from transformers.utils.hub import cached_file
 from safetensors import torch as safetorch
 
-
 @dataclass
 class LlamaOutput:
     logits: torch.FloatTensor
@@ -53,18 +52,20 @@ class LlamaSelfAttention(nn.Module):
 
         # add rotary embeddings to the query and keys
         cos_m_theta, sin_m_theta = self.rotary_emb(v, position_ids, v.device.type)
+
         q, k = self._add_rotary_embeddings(q, k, cos_m_theta, sin_m_theta)
 
         # update latest kv and get the past k,v from the cache.
         if kv_cache is not None:
             k, v = kv_cache.update(k, v, self.layer_index)
-            
+
         assert k.shape[-2] == attention_mask.shape[-2], f"Seq len for keys and attention mask didn't match."
 
         # copy kv heads to match the no. of q/attn heads for pytorch's sdpa.        
         k = self._copy_kv_heads(k, copies=self.n_kv_groups)
         v = self._copy_kv_heads(v, copies=self.n_kv_groups)
         
+
         # sdpa doesn't work properly on cuda if the qkv are non contiguous.
         if q.device.type == "cuda":
             q = q.contiguous()
@@ -174,7 +175,6 @@ class LlamaDecoderLayer(nn.Module):
         residual = hidden_state
         hidden_state = self.post_attention_layernorm(hidden_state)
         hidden_state = self.mlp(hidden_state)
-
         hidden_state = residual + hidden_state
         
         return hidden_state
@@ -187,8 +187,8 @@ class LlamaRotaryEmbeddings(nn.Module):
         super().__init__()
         self.config = config
         base = config.rope_theta_base
-        inv_freq = 1.0 / (base ** (torch.arange(0, head_dims, 2, dtype=torch.float16) / head_dims))
-        self.register_buffer("inv_freq", inv_freq)
+        inv_freq = 1.0 / (base ** (torch.arange(0, head_dims, 2, dtype=torch.int64).float() / head_dims))
+        self.register_buffer("inv_freq", inv_freq, persistent=False)
 
     def forward(self, value_state, position_ids, device_type="cpu"):
         '''
@@ -237,13 +237,12 @@ class LlamaRMSNorm(nn.Module):
             rms(a) = sqrt(mean(ai^2)) + eps
         '''
         dtype = hidden_states.dtype
+        hidden_states = hidden_states.to(torch.float32)
         g = self.weight
-
         # compute 1/rms(a)
-        inv_rms = torch.rsqrt(hidden_states.pow(2).mean(-1, keepdim=True) + self.variance_epsilon) 
-        
+        hidden_states = hidden_states * torch.rsqrt(hidden_states.pow(2).mean(-1, keepdim=True) + self.variance_epsilon)
         # return a/rms(a) * g
-        return (hidden_states * inv_rms * g)
+        return g * hidden_states.to(dtype)
 
 class Llama(nn.Module):
     '''
@@ -389,7 +388,6 @@ class LlamaWithLMHead(nn.Module):
             Loads the model weights from the safetensor checkpoints. 
         '''
         model = LlamaWithLMHead(LlamaConfig())
-        model = model.to(torch.float16)   
         sd = model.state_dict()
         sd_keys = sd.keys()
 
@@ -400,11 +398,12 @@ class LlamaWithLMHead(nn.Module):
             safe_tensors_file = cached_file(model_name, checkpoint)
             loaded_tensors = safetorch.load_file(safe_tensors_file)
             for key in loaded_tensors.keys():
-                if "rotary_emb" in key and debug:                    
-                    print(f"skipping {key}")
+                if "rotary_emb" in key:
+                    if debug:
+                        print(f"skipping {key}")
                 else:
                     if debug:
                         print(f"loading {key} with the shape {loaded_tensors[key].shape}")
                     with torch.no_grad():
-                        sd[key].copy_(loaded_tensors[key])    
+                        sd[key].copy_(loaded_tensors[key])
         return model

@@ -384,11 +384,10 @@ class LlamaWithLMHead(nn.Module):
         return model
     
     @classmethod
-    def from_checkpoint(cls, model_name, checkpoints):
+    def from_checkpoint(cls, model_name, checkpoints, debug=False):
         '''
             Loads the model weights from the safetensor checkpoints. 
         '''
-        print(f"Instantiating Llama2 model.")
         model = LlamaWithLMHead(LlamaConfig())
         model = model.to(torch.float16)   
         sd = model.state_dict()
@@ -396,14 +395,16 @@ class LlamaWithLMHead(nn.Module):
 
         safe_tensor_checkpoints = checkpoints
         for checkpoint in safe_tensor_checkpoints:
-            print(f'loading checkpoint -> {checkpoint}')
+            if debug:
+                print(f'loading checkpoint -> {checkpoint}')
             safe_tensors_file = cached_file(model_name, checkpoint)
             loaded_tensors = safetorch.load_file(safe_tensors_file)
             for key in loaded_tensors.keys():
-                if "rotary_emb" in key:
+                if "rotary_emb" in key and debug:                    
                     print(f"skipping {key}")
                 else:
-                    print(f"loading {key} with the shape {loaded_tensors[key].shape}")
+                    if debug:
+                        print(f"loading {key} with the shape {loaded_tensors[key].shape}")
                     with torch.no_grad():
                         sd[key].copy_(loaded_tensors[key])    
         return model

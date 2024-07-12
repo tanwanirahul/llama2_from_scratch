@@ -217,18 +217,6 @@ class LlamaRotaryEmbeddings(nn.Module):
             sin_m_theta = m_theta.sin()
 
         return cos_m_theta.to(value_state.dtype), sin_m_theta.to(value_state.dtype)
-        
-
-class SwiGLU(nn.Module):
-    '''
-        Implements SwiGLU activation function.
-    '''
-    def __init__(self, config:LlamaConfig):
-        super().__init__()
-        self.config = config
-    
-    def forward(self, input_ids, attention_mask, device="cpu"):
-        pass
 
 class LlamaRMSNorm(nn.Module):
     '''

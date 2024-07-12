@@ -15,6 +15,6 @@ class LlamaConfig:
     n_kv_heads: int = 32
     interm_dims: int = 11008
     max_position_embeddings: int = 2048
-    rms_norm_eps: float = 1e-6
+    rms_norm_eps: float = 1e-5
     rope_theta_base: int = 10000
     default_dtype: torch.dtype = torch.float16

@@ -1,3 +1,4 @@
 scratch.py
 *.txt
 __pycache__/*
+*.json

@@ -1,12 +1,12 @@
 # Llama2
 
-This repo contains implementation of Llama2 model architecture. We implement Llama2 base variant with ~7B parameters. The weights are loaded in fp16 precision and therefore you would need roughly 14GB for of memory for running inference. Figure below shows the high level model architecture for Llama2. 
+This repo contains implementation of Llama2 model architecture. We implement the Llama2 base variant with ~7B parameters. The weights are loaded in fp16 precision and therefore you would need roughly 14GB of memory for running inference. Figure below shows the high level model architecture for Llama2. 
 
 ![Llama2 Achitecture](https://miro.medium.com/v2/resize:fit:1358/1*CQs4ceLpN8tIN8QyezL2Ag.png)
 
 Llama family of models that includes Llama2, adopt a few key changes in comparison to the vanilla decoder only transformers and GPT based architectures. A few notable differences include:
 
-1. **Grouped Query Attention**: Instead of a regular/linear self attention that requires query, key and value to have same no. of heads, in a grouped query attention, the key and value cab be shared among multiple query heads as shown in the fig. below. 
+1. **Grouped Query Attention**: Instead of a regular/linear self attention that requires query, key and value to have the same no. of heads, in a grouped query attention, the key and value can be shared among multiple query heads as shown in the fig. below. 
 ![Grouped Query Attention](https://miro.medium.com/v2/resize:fit:1200/1*idazASvgX9d4yh0pgtCvbw.png)
 
 2. **Rotary Position Embeddings**:
@@ -17,12 +17,12 @@ Initial transformer based models either used absolute positional encoding (such 
 ![Rotary Position Embedding](https://production-media.paperswithcode.com/methods/Screen_Shot_2021-08-10_at_10.38.41_AM.png)
 
 3. **KV Cache**:
-One of the primary usecases of transformer models is for text generation. Transformers generate text in an auto regressive fashion i.e - one token at a time. To generate a token, the model runs all the previous tokens through the architecture. This process is repeated n times for n tokens generation. What this means is that, the self attention for the tokens that appear early in the sequence is repeated multiple times in the process resulting in redundant computation. With KV Cache, we cache the key and value tensors for all the tokens across iterations and thereby save up on redundant computation. For each iteration of next token generation, the key and value of the previously generated token is appended into the cache as shown in the figure below. 
+One of the primary use cases of transformer models is for text generation. Transformers generate text in an auto regressive fashion i.e - one token at a time. To generate a token, the model runs all the previous tokens through the architecture. This process is repeated n times for n tokens generation. What this means is that, the self attention for the tokens that appear early in the sequence is repeated multiple times in the process resulting in redundant computation. With KV Cache, we cache the key and value tensors for all the tokens across iterations and thereby save up on redundant computation. For each iteration of next token generation, the key and value of the previously generated token is appended into the cache as shown in the figure below. 
 
 ![KV Cache](https://developer-blogs.nvidia.com/wp-content/uploads/2023/11/key-value-caching_.png)
 
 4. **SwiGLU activation**:
-Llama2 uses an activation from GLU family known as SwiGLU. GLU family of actiovations have been known to perform better than other activations. Here is what the authors of the paper say about what drives this performance: 
+Llama2 uses an activation from the GLU family known as SwiGLU. GLU family of activations have been known to perform better than other activations. Here is what the authors of the paper say about what drives this performance: 
 > We offer no explanation as to why these architectures seem to work;we attribute their success, as all else, to divine benevolence.
 
 [GLU Variants Improve Transformer](https://arxiv.org/pdf/2002.05202)

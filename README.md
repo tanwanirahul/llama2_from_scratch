@@ -27,7 +27,7 @@ Llama2 uses an activation from the GLU family known as SwiGLU. GLU family of act
 
 [GLU Variants Improve Transformer](https://arxiv.org/pdf/2002.05202)
 
-A point to note here is that, transformers from huggingface uses SiLU activation in place of SwiGLU in their implementation. 
+A point to note here is that transformers from huggingface uses SiLU activation in place of SwiGLU in their implementation. 
 
 `reference:` [Transformers - Llama configuration](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/configuration_llama.py#L125)
 
@@ -42,7 +42,7 @@ output = down_proj(activation(gate_proj(x)) * up_proj(x))
 
 ## Implementation Details
 
-1. We have implemented base variant of Llama2 with roughly 7B parameters. 
+1. We have implemented the base variant of Llama2 with roughly 7B parameters. 
 2. The implementation is focussed on inference and therefore no training loop is implemented.
 3. We load the pre-trained weights from huggingface in fp16 precision. This requires roughly 14GB of memory to be available.
 4. Most of the model architecture choices (such as no. of query heads, no. of key/value heads etc) are configurable. All configurations are defined in `config.py`.
